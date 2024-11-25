@@ -1,0 +1,8 @@
+version: "1"
+env: "development"
+set: "default"
+base:
+  url: "postgres://postgres:postgres@localhost:5432/bank?sslmode=disable"
+migrations:
+  table: "goose_db_version"
+  path: "internal/sql/schema"
