@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 )
 
 const createClient = `-- name: CreateClient :one
@@ -18,8 +19,8 @@ RETURNING id, name, balance
 `
 
 type CreateClientParams struct {
-	Name    string `json:"name"`
-	Balance string `json:"balance"`
+	Name    string          `json:"name"`
+	Balance decimal.Decimal `json:"balance"`
 }
 
 func (q *Queries) CreateClient(ctx context.Context, arg CreateClientParams) (Client, error) {
@@ -48,8 +49,8 @@ WHERE id = $1
 `
 
 type UpdateClientBalanceParams struct {
-	ID      uuid.UUID `json:"id"`
-	Balance string    `json:"balance"`
+	ID      uuid.UUID       `json:"id"`
+	Balance decimal.Decimal `json:"balance"`
 }
 
 func (q *Queries) UpdateClientBalance(ctx context.Context, arg UpdateClientBalanceParams) error {

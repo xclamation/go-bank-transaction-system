@@ -6,10 +6,11 @@ package database
 
 import (
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 )
 
 type Client struct {
-	ID      uuid.UUID `json:"id"`
-	Name    string    `json:"name"`
-	Balance string    `json:"balance"`
+	ID      uuid.UUID       `json:"id"`
+	Name    string          `json:"name"`
+	Balance decimal.Decimal `json:"balance"`
 }

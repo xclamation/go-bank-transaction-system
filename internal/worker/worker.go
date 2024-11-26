@@ -1,12 +1,27 @@
 package worker
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
 
 	"github.com/streadway/amqp"
+	"github.com/xclamation/go-bank-transaction-system/internal/database"
+	"github.com/xclamation/go-bank-transaction-system/internal/server"
 )
 
-func StartWorker() {
+func processTransaction(db *database.Queries, req server.TransactionRequest) error {
+	// Проверка баланса отправителя
+	fromClient, err := db.GetClient(req.FromClientID)
+	if err != nil {
+		return err
+	}
+	if fromClient.Balance < req.Amount {
+		return fmt.Errorf("insufficient balance")
+	}
+}
+
+func StartWorker(db *database.Queries) {
 	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
 
 	if err != nil {
@@ -45,7 +60,7 @@ func StartWorker() {
 	)
 
 	if err != nil {
-		log.Fatal("Failed to register a consumer: %v", err)
+		log.Fatalf("Failed to register a consumer: %v", err)
 	}
 
 	forever := make(chan bool)
@@ -53,7 +68,19 @@ func StartWorker() {
 	go func() {
 		for d := range msgs {
 			log.Printf("Received a message: %s", d.Body)
-			// Здесь будет логика перевода денег
+			var req server.TransactionRequest
+			err := json.Unmarshal(d.Body, &req)
+			if err != nil {
+				log.Printf("Failed to unmarshal message: %v", err)
+				continue
+			}
+
+			log.Printf("Recieved a transaction request: %v", req)
+
+			err = processTransaction(db, req)
+			if err != nil {
+				log.Printf("Failed to process transaction: %v", err)
+			}
 		}
 	}()
 
