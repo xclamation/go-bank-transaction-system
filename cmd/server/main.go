@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/joho/godotenv"
 	"github.com/xclamation/go-bank-transaction-system/internal/database"
+	"github.com/xclamation/go-bank-transaction-system/internal/worker"
 )
 
 type apiConfig struct {
@@ -45,11 +46,13 @@ func main() {
 
 	// Инициализация Queries
 
-	db := database.New(conn)
+	//db := database.New(conn)
 
-	apiCfg := apiconfig{
-		DB: db,
-	}
+	go worker.StartWorker()
+
+	// apiCfg := apiConfig{
+	// 	DB: db,
+	// }
 
 	// Настройка роутера
 	router := chi.NewRouter()

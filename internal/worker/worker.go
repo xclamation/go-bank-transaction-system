@@ -1,23 +1,27 @@
 package worker
 
-import "log"
+import (
+	"log"
+
+	"github.com/streadway/amqp"
+)
 
 func StartWorker() {
 	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
 
 	if err != nil {
-		log.Fatal("Failed to connect to RabbitMQ: %v", err)
+		log.Fatalf("Failed to connect to RabbitMQ: %v", err)
 	}
 	defer conn.Close()
 
 	ch, err := conn.Channel()
 
 	if err != nil {
-		log.Fatal("Failed to open a channel: %v", err)
+		log.Fatalf("Failed to open a channel: %v", err)
 	}
 	defer ch.Close()
 
-	q, err := ch.QueDeclare(
+	q, err := ch.QueueDeclare(
 		"transactions", //name
 		true,           // durable
 		false,          // delete when unused
