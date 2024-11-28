@@ -4,13 +4,15 @@ import (
 	"encoding/json"
 	"log"
 
+	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 	"github.com/streadway/amqp"
 )
 
 type TransactionRequest struct {
-	FromClientID string  `json:"from_client_id"`
-	ToClientID   string  `json:"to_client_id"`
-	Amount       float64 `json:"amount"`
+	FromClientID uuid.UUID       `json:"from_client_id"`
+	ToClientID   uuid.UUID       `json:"to_client_id"`
+	Amount       decimal.Decimal `json:"amount"`
 }
 
 func SendTransaction(req TransactionRequest) error {

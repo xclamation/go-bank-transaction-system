@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -10,19 +11,47 @@ import (
 	"github.com/xclamation/go-bank-transaction-system/internal/server"
 )
 
-func processTransaction(db *database.Queries, req server.TransactionRequest) error {
+func processTransaction(ctx context.Context, db *database.Queries, req server.TransactionRequest) error {
 	// Проверка баланса отправителя
-	fromClient, err := db.GetClient(req.FromClientID)
+	fromClient, err := db.GetClient(ctx, req.FromClientID)
 	if err != nil {
-		return err
+		return fmt.Errorf("invalid from_client_id: %v", err)
 	}
-	if fromClient.Balance < req.Amount {
+
+	if fromClient.Balance.LessThan(req.Amount) {
 		return fmt.Errorf("insufficient balance")
 	}
+
+	// Обновление баланса отправителя
+	err = db.UpdateClientBalance(ctx, database.UpdateClientBalanceParams{
+		ID:      fromClient.ID,
+		Balance: fromClient.Balance.Sub(req.Amount),
+	})
+	if err != nil {
+		return fmt.Errorf("invalid fromClient balance update: %v", err)
+	}
+
+	// Обновление баланса получателя
+	toClient, err := db.GetClient(ctx, req.ToClientID)
+	if err != nil {
+		return fmt.Errorf("invalid toClient balance update: %v", err)
+	}
+
+	err = db.UpdateClientBalance(ctx, database.UpdateClientBalanceParams{
+		ID:      toClient.ID,
+		Balance: toClient.Balance,
+	})
+	if err != nil {
+		return fmt.Errorf("invalid fromClient balance update: %v", err)
+	}
+
+	log.Printf("transaction processed: %v", req)
+
+	return nil
 }
 
 func StartWorker(db *database.Queries) {
-	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
+	conn, err := amqp.Dial("amqp://guest:guest@rabbitmq:5672/")
 
 	if err != nil {
 		log.Fatalf("Failed to connect to RabbitMQ: %v", err)
@@ -77,7 +106,7 @@ func StartWorker(db *database.Queries) {
 
 			log.Printf("Recieved a transaction request: %v", req)
 
-			err = processTransaction(db, req)
+			err = processTransaction(context.Background(), db, req)
 			if err != nil {
 				log.Printf("Failed to process transaction: %v", err)
 			}

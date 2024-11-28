@@ -22,5 +22,8 @@ FROM alpine:latest
 # Copy the Pre-built binary file from the previous stage
 COPY --from=builder /app/main .
 
+# Copy the .env file to the working directory
+COPY .env .env
+
 # Command to run the executable
 CMD ["./main"]

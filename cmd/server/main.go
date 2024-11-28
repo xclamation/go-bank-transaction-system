@@ -5,17 +5,21 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/cors"
 	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
+
 	"github.com/xclamation/go-bank-transaction-system/internal/database"
+	"github.com/xclamation/go-bank-transaction-system/internal/server"
 	"github.com/xclamation/go-bank-transaction-system/internal/worker"
 )
 
-type apiConfig struct {
-	DB *database.Queries
-}
+// type apiConfig struct {
+// 	DB *database.Queries
+// }
 
 func main() {
 	// Загрузка переменных окружения из файла .env
@@ -33,22 +37,25 @@ func main() {
 		log.Fatal("DB_URL is not found in the environment")
 	}
 
+	// Задержка для ожидания запуска базы данных
+	time.Sleep(20 * time.Second)
+
 	// Подключение к базе данных
 	conn, err := sql.Open("postgres", dbURL)
 	if err != nil {
-		log.Fatal("Can't connect to database:", err)
+		log.Fatal("Can't connect to database: ", err)
 	}
 
 	// Проверка подключения к базе данных
 	if err = conn.Ping(); err != nil {
-		log.Fatal("Can't ping database:", err)
+		log.Fatal("Can't ping database: ", err)
 	}
 
 	// Инициализация Queries
 
-	//db := database.New(conn)
+	db := database.New(conn)
 
-	go worker.StartWorker()
+	go worker.StartWorker(db)
 
 	// apiCfg := apiConfig{
 	// 	DB: db,
@@ -77,6 +84,8 @@ func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Hello, World!"))
 	})
+
+	http.HandleFunc("/send-transaction", server.HandlerTransaction)
 
 	log.Printf("Server starting on port %v", portString)
 
